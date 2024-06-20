@@ -1,6 +1,5 @@
 package edu.escuelaing.arsw.ase.app;
 
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -14,10 +13,11 @@ import java.util.Base64;
 
 public class ConcurrentWebApp {
 
-    private static String path = "src\\main\\java\\edu\\escuelaing\\arsw\\ase\\app\\resources\\";
-    
-    public static ServerSocket serverSocket = null;
-    private static ArrayList<Runnable> hilos = new ArrayList<>();
+    public static String path = "src\\main\\java\\edu\\escuelaing\\arsw\\ase\\app\\resources\\";
+
+     ServerSocket serverSocket = null;
+    public static ArrayList<String> hilos = new ArrayList<>();
+    public static ArrayList<Ejecutable> threads = new ArrayList<>();
     public static class HttpContext {
 
         public final static String getHtml() {
@@ -37,14 +37,14 @@ public class ConcurrentWebApp {
         }
     }
 
-    private static String[] getPath(String a) {
+    static String[] getPath(String a) {
         String[] pathQuery = a.split(" ");
         String[] path = pathQuery[1].split("\\?");
-    
+
         return path;
     }
 
-    private static String[] generateResponse(String[] a) {
+    static String[] generateResponse(String[] a) {
         String[] res;
         if (a.length > 1) {
             res = document(a[1]);
@@ -60,7 +60,7 @@ public class ConcurrentWebApp {
         } else {
             res = document(a[0]);
         }
-        
+
         return res;
     }
 
@@ -111,7 +111,7 @@ public class ConcurrentWebApp {
         return res;
     }
 
-    private static String getIndex() throws IOException {
+    static String getIndex() throws IOException {
         String content = new String(Files
                 .readAllBytes(Paths.get(path + "index.html")));
 
@@ -129,16 +129,10 @@ public class ConcurrentWebApp {
         return content;
     }
 
-    public class Ejecutable implements Runnable{
-
-        public void run() {
-            
-        }
-        
-    }
     public static void main(String[] args) throws IOException {
-
-
+        hilos.add("HTTP/1.1 200 OK\r\n"
+        + "Content-Type: text/html\r\n"//
+        + "\r\n");
         ServerSocket serverSocket = null;
         try {
             serverSocket = new ServerSocket(35000);
@@ -146,26 +140,71 @@ public class ConcurrentWebApp {
             System.err.println("Could not listen on port: 35000.");
             System.exit(1);
         }
-        boolean running = true;
 
-
-        while (running) {
-            Socket clientSocket = null;
+        for(int i =0 ; i<3; i++){
+            Ejecutable hilo = new Ejecutable(serverSocket);
+            threads.add(hilo);
+            threads.get(i).start();
+            
+        }for(Ejecutable a : threads){
             try {
-                System.out.println("Listo para recibir ...");
-                clientSocket = serverSocket.accept();
-            } catch (IOException e) {
-                System.err.println("Accept failed.");
-                System.exit(1);
+                a.join();
+            } catch (InterruptedException e) {
             }
-            PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(clientSocket.getInputStream()));
+        }
+        for(Ejecutable a : threads){
+            PrintWriter out;
+            out = new PrintWriter(a.clientSocket().getOutputStream(), true);
+            for(String b : hilos){
+                out.println(b);
+            }
+            out.close();
+            a.clientSocket().close();
+        }   
+        //serverSocket.close();
 
+    }
+}
+
+class Ejecutable extends Thread {
+
+    ServerSocket serverSocket;
+    String answer;
+    Socket clientSocket;
+    public String getAnswer(){
+        return answer;
+    }
+
+    public Socket clientSocket(){
+        
+        return clientSocket;
+    }
+    public Ejecutable(ServerSocket serverSocket) {
+        this.serverSocket = serverSocket;
+        
+    }
+
+    public void run() {
+
+        clientSocket = null;
+        try {
+            System.out.println("Listo para recibir ...");
+            this.clientSocket = serverSocket.accept();
+        } catch (IOException e) {
+            System.err.println("Accept failed.");
+            e.printStackTrace();
+            System.exit(1);
+        }
+        PrintWriter out;
+        try {
+            out = new PrintWriter(clientSocket.getOutputStream(), true);
+
+            BufferedReader in;
+            in = new BufferedReader(
+                    new InputStreamReader(clientSocket.getInputStream()));
             String inputLine, outputLine;
             boolean header = true;
             String textHeader = "";
-
             while ((inputLine = in.readLine()) != null) {
                 if (header) {
                     textHeader = inputLine;
@@ -177,50 +216,48 @@ public class ConcurrentWebApp {
                 }
             }
 
-            String[] a = getPath(textHeader);
+            String[] a = ConcurrentWebApp.getPath(textHeader);
             if (a[0].split("/").length == 0) {
-                outputLine = getIndex() + inputLine;
-                out.println(outputLine);
-                out.close();
+                outputLine = ConcurrentWebApp.getIndex() + inputLine;
             } else {
-                String[] res = generateResponse(a);
-                outputLine = res[1];
+                String[] res = ConcurrentWebApp.generateResponse(a);
+                ;
                 if (!Boolean.valueOf(res[0])) {
-                    
-                    if(res.length<=2){
-                        outputLine +=  inputLine;
-                    }else{
-                        outputLine += res[2] + inputLine;
+
+                    if (res.length <= 2) {
+                        answer= inputLine;
+                    } else {
+                        answer = res[2] + inputLine;
                     }
-                   
 
                 } else {
-                    try{
-                       // out.println(outputLine);
-                        byte[] bytes = Files.readAllBytes(Paths.get(path + getFileName(a[1])));
+                    try {
+                        // out.println(outputLine);
+                        byte[] bytes = Files
+                                .readAllBytes(Paths.get(ConcurrentWebApp.path + ConcurrentWebApp.getFileName(a[1])));
                         String base64 = Base64.getEncoder().encodeToString(bytes);
-                        outputLine += "<!DOCTYPE html>\r\n"
-                        + "<html>\r\n"
-                        + "    <head>\r\n"
-                        + "        <title>Resultado</title>\r\n"
-                        + "    </head>\r\n"
-                        + "    <body>\r\n"
-                        + "         <center><img src=\"data:image/jpeg;base64," + base64 + "\" alt=\"image\"></center>" + "\r\n"
-                        + "    </body>\r\n"
-                        + "</html>";
-                    }catch(Exception e){
-                        outputLine += "FILE NOT FOUND"+ inputLine;
+                        answer = "<!DOCTYPE html>\r\n"
+                                + "<html>\r\n"
+                                + "    <head>\r\n"
+                                + "        <title>Resultado</title>\r\n"
+                                + "    </head>\r\n"
+                                + "    <body>\r\n"
+                                + "         <center><img src=\"data:image/jpeg;base64," + base64
+                                + "\" alt=\"image\"></center>" + "\r\n"
+                                + "    </body>\r\n"
+                                + "</html>";
+                    } catch (Exception e) {
+                        answer = "FILE NOT FOUND" + inputLine;
                     }
                 }
-                out.println(outputLine);
-                out.close();
+                ConcurrentWebApp.hilos.add(answer);
             }
 
-            in.close();
+            //in.close();
 
-            clientSocket.close();
+        } catch (Exception e) {
+
         }
-        serverSocket.close();
-
     }
+
 }

@@ -76,6 +76,9 @@ for each three submits to the server, the server WILL shutdown, be advised to st
 
 * [Maven](https://maven.apache.org/) - Dependency Management
 * [Java](https://www.oracle.com/java/technologies/) - Programming Language
+* [HTML 5](https://html.spec.whatwg.org/multipage/) - HiperText Markup Lenguaje
+* [JavaScript](https://262.ecma-international.org/14.0/?_gl=1*1jesqaj*_ga*MTM5NDk2MzkzNS4xNzE5MDk5NzQ3*_ga_TDCK4DWEPP*MTcxOTA5OTc0Ni4xLjEuMTcxOTA5OTgwMC4wLjAuMA..) - Programming lenguage
+* [Css](https://www.w3.org/Style/CSS/Overview.en.html) - stylesheet language
 
 ## Versioning
 

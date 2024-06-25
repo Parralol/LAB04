@@ -36,7 +36,7 @@ mvn clean package
 
 ### Acceptance test
 
-this acceptance test is build around the following files which you can see here -> [file used]([https://github.com/Parralol/Lab01ARSW/blob/main/Test%20set/xd/Peticion.java](https://github.com/Parralol/Lab04/tree/main/src/main/java/edu/escuelaing/arsw/ase/app/resources))
+this acceptance test is build around the following files which you can see here -> [file used](https://github.com/Parralol/Lab04/tree/main/src/main/java/edu/escuelaing/arsw/ase/app/resources)
 
 
 ![image](https://github.com/Parralol/Lab04/assets/110953563/02efe40d-9b23-44c9-a047-3450d49cf0cc)
